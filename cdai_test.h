@@ -13,9 +13,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/select.h>
+#include <signal.h>
+#include <poll.h>
 
 int get_new_socket(void); // return a fd
-void	init_server(struct sockaddr_in *server); // fullfill a (struct sockaddr_in)
+void	init_server(struct sockaddr_in *server, int port); // fullfill a (struct sockaddr_in)
 int	server_bind(int fd, struct sockaddr_in * server); // use bind
 char *build_response(char *file_name);
 char *strjoin(char *str1, char *str2);

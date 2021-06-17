@@ -4,31 +4,71 @@
 int main()
 {
 	int socket_desc , new_socket , c;
+	int socket_desc2 ;//, new_socket2 , c2;
 	struct sockaddr_in server , client;
+	struct sockaddr_in server2 ;//, client2;
 
 
 
 	//Create socket
 	//Set option on socket_fd (like REUSEADDR to rebind (and so, re-test quickly))
 	socket_desc = get_new_socket();
+	socket_desc2 = get_new_socket();
+	printf("socket_desc: %d\n", socket_desc);
+	printf("socket_desc2: %d\n", socket_desc2);
 
 
 
 	//Prepare the sockaddr_in structure
-	init_server(&server);
+	init_server(&server, 8888);
+	init_server(&server2, 8080);
 
 
 
 	//Bind socket to ip addr
 	server_bind(socket_desc, &server);
+	server_bind(socket_desc2, &server2);
+
 
 	//Listen
 	listen(socket_desc , 3);
+	listen(socket_desc2 , 3);
+
+
+	struct pollfd fds[10];
+
+	fds[0].fd = socket_desc;
+	fds[0].events = POLLIN;
+	fds[1].fd = socket_desc2;
+	fds[1].events = POLLIN;
+
+	while (1)
+{
+	printf("POLLIN: %d\n", POLLIN);
+	int poll_ret = poll(fds, 2, 50000);
+	printf("poll_ret: %d\n", poll_ret);
+
+	for(int j = 0; j < 2; j++)
+	{
+		printf("fds[%d].events: %d\n", j, fds[j].events);
+		printf("fds[%d].revents: %d\n", j, fds[j].revents);
+
+	}
+for (int i = 0; i < 2; i++)
+if (fds[i].revents & POLLIN)
+{
+	for(int j = 0; j < 2; j++)
+		printf("fds[%d].events: %d\n", j, fds[j].events);
 
 	//Accept and incoming connection
 	puts("Waiting for incoming connections...");
 	c = sizeof(struct sockaddr_in);
-	while( (new_socket = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
+
+	struct sockaddr_in client_test;
+	(void)client;
+
+//	while( (new_socket = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
+	while( (new_socket = accept(fds[i].fd, (struct sockaddr *)&client_test, (socklen_t*)&c)) )
 	{
 		puts("---- ---- ---- Connection accepted ---- ---- ----");
 
@@ -74,6 +114,8 @@ int main()
 		if (!strcmp(client_message, "CLOSE\r\n"))
 			break;
 
+	fds[i].revents = 0;
+	break;
 	}
 
 	// handle accept() fail
@@ -83,6 +125,8 @@ int main()
 		return 1;
 	}
 
+} //if
+} //while
 	return 0;
 }
 
