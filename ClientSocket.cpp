@@ -6,15 +6,16 @@
 /*   By: syndraum <syndraum@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/17 18:14:07 by syndraum          #+#    #+#             */
-/*   Updated: 2021/06/17 18:14:08 by syndraum         ###   ########.fr       */
+/*   Updated: 2021/06/29 11:33:20 by cdai             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ClientSocket.hpp"
 
-ClientSocket::ClientSocket(void) : _socket(0)
+ClientSocket::ClientSocket(void)
 {
 	// _address = {0};
+	_socket = 0;
 }
 
 ClientSocket::ClientSocket(ClientSocket const & src)
@@ -32,24 +33,4 @@ ClientSocket &	ClientSocket::operator=(ClientSocket const & rhs)
 	if (&rhs != this)
 		this->_socket = rhs._socket;
 	return *this;
-}
-
-int			ClientSocket::getSocket(void) const
-{
-	return this->_socket;
-}
-
-void		ClientSocket::setSocket(int Socket)
-{
-	this->_socket = Socket;
-}
-
-sockaddr	& ClientSocket::getAddress(void)
-{
-	return this->_address;
-}
-
-void		ClientSocket::setAddress(sockaddr & Address)
-{
-	this->_address = Address;
 }

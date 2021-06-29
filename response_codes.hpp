@@ -1,0 +1,11 @@
+#ifndef RESPOND_CODES_HPP
+#define RESPOND_CODES_HPP
+
+#define OK 200
+
+#define BAD_REQUEST 400
+
+#define NOT_IMPLEMENTED 501
+#define BAD_VERSION 505
+
+#endif

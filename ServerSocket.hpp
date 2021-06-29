@@ -6,7 +6,7 @@
 /*   By: syndraum <syndraum@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/17 18:14:00 by syndraum          #+#    #+#             */
-/*   Updated: 2021/06/17 18:14:00 by syndraum         ###   ########.fr       */
+/*   Updated: 2021/06/29 12:02:24 by cdai             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,13 @@
 
 # include <sys/socket.h>
 # include <netinet/in.h>
+# include "ASocket.hpp"
 
 # include <iostream>
 # include <cerrno>
 # include <cstring>
 
-class ServerSocket
+class ServerSocket : public ASocket
 {
 public:
 	ServerSocket(int port = 80);
@@ -34,15 +35,10 @@ public:
 
 	ServerSocket *	setPort(int port);
 	int				getPort();
-	int				getSocket();
-	sockaddr_in		& getServer();
-
 	void			print();
 
 private:
 	int			_port;
-	int			_socket;
-	sockaddr_in _address;
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: syndraum <syndraum@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/13 14:23:05 by syndraum          #+#    #+#             */
-/*   Updated: 2021/06/20 11:15:36 by syndraum         ###   ########.fr       */
+/*   Updated: 2021/06/29 11:02:31 by cdai             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ void	Server::start(int worker)
 		ss.bindSocket();
 		ss.listenSocket(worker);
 		_activePort.push_back(ss.getPort());
-		_activeSocket.push_back(ss.getSocket());
+		_activeSocket.push_back(ss.get_socket());
 	}
 }
 

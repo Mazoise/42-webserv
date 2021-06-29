@@ -28,7 +28,7 @@ void	Reader::open()
 {
 	try
 	{
-		_ifs.open(_path);
+		_ifs.open(_path.c_str());
 	}
 	catch(const std::exception& e)
 	{
@@ -54,7 +54,7 @@ void	Reader::close()
 	_ifs.close();
 }
 
-int		Reader::get_lenght() const
+int		Reader::get_length() const
 {
 	return _length;
 }

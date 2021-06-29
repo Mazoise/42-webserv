@@ -6,15 +6,15 @@
 /*   By: syndraum <syndraum@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/17 18:14:23 by syndraum          #+#    #+#             */
-/*   Updated: 2021/06/18 18:11:14 by user42           ###   ########.fr       */
+/*   Updated: 2021/06/29 12:01:39 by cdai             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ServerSocket.hpp"
 
-ServerSocket::ServerSocket(int port) : _port(port), _socket(-1)
+ServerSocket::ServerSocket(int port) : _port(port)
 {
-
+	_socket = -1;
 }
 
 ServerSocket::ServerSocket(ServerSocket const & src)
@@ -74,16 +74,6 @@ ServerSocket *	ServerSocket::setPort(int port)
 int				ServerSocket::getPort()
 {
 	return (_port);
-}
-
-int				ServerSocket::getSocket()
-{
-	return (_socket);
-}
-
-sockaddr_in &		ServerSocket::getServer()
-{
-	return (_address);
 }
 
 void	ServerSocket::print()

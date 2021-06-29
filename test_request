@@ -1,0 +1,4 @@
+DELETE /coucou HTTP/1.1
+coucou: salut
+lines ;: coucou
+lalalou: lol: lala

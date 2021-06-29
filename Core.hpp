@@ -6,7 +6,7 @@
 /*   By: syndraum <syndraum@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/17 18:13:48 by syndraum          #+#    #+#             */
-/*   Updated: 2021/06/22 17:41:05 by cdai             ###   ########.fr       */
+/*   Updated: 2021/06/25 15:53:33 by cdai             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,11 @@
 # include "ClientSocket.hpp"
 # include <poll.h>
 # include "Response.hpp"
+# include "Request.hpp"
+# include "BuilderRequest.hpp"
+# include "MethodGet.hpp"
+# include "MethodDelete.hpp"
+# include "MethodLibrary.hpp"
 // cdai_temp
 # include <fstream>
 
@@ -35,27 +40,26 @@ public:
 	void	addServer(Server & server);
 	Server	&	addServer();
 	Server	&	getServer(int index = 0);
+	Core	&	add_method(AMethod *);
+	AMethod	*	get_method(const std::string &);
 
 	void	print();
 
 private:
 
 	void				_acceptConnection();
-	void				_detectCloseConnection();
+	void				_handle_request_and_detect_close_connection();
 	void				_detectResetServerPollFD();
-	void				_cdaiTempSendResponse();
-	void				_cdaiTempSendImage();
-	void				_cdaiTempSendFavicon();
-	std::string			_cdai_temp_get_requested_file(std::string & buffer);
 
 	std::vector<Server>	_servers;
 	int					_worker;
 	int					_nbActive;
 	std::vector<int>	_serverSockets;
 	client_vector		_client;
-	int					_SIZE_SOCK_ADDR = sizeof(struct sockaddr_in);
+	int					_SIZE_SOCK_ADDR;
 	struct pollfd *		_fds;
 	int					_nbFds;
+	MethodLibrary		_methods;
 };
 
 #endif

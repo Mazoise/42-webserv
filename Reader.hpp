@@ -18,7 +18,7 @@ public:
 	void	to_string(std::string & );
 	void	close();
 
-	int		get_lenght() const;
+	int		get_length() const;
 private:
 	std::string		_path;
 	std::ifstream	_ifs;
