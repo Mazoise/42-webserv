@@ -6,7 +6,7 @@
 /*   By: mchardin <mchardin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/23 17:04:45 by mchardin          #+#    #+#             */
-/*   Updated: 2021/07/30 19:58:55 by mchardin         ###   ########.fr       */
+/*   Updated: 2021/08/03 23:41:56 by mchardin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,12 @@
 
 BuilderCore::BuilderCore(std::istream &fd, Core *core) :
 _idx(0),
-_core(core)
+_core(core),
+_b_worker(false)
 {
 	std::string	directive;
 	std::getline(fd, _line, char(EOF));
-	while (_line[_idx])
+	while (_idx < _line.length())
 	{
 		directive = next_word_skip();
 		if (!directive.compare("worker"))
@@ -42,24 +43,44 @@ BuilderCore::get_builded_core() const
 	return (_core);
 }
 
+void
+BuilderCore::erase_server_bool()
+{
+	_b_server_name = false; // erase?
+	_b_server_root = false;
+	_b_server_path_error_page = false;
+	_b_server_auto_index = false;
+	_b_server_client_max_body_size = false;
+}
+
 std::string
 BuilderCore::next_word_skip()
 {
 	skip_whitespaces();
 
 	size_t			len = _line.find_first_of(";{}# \n\r\t\v\f", _idx) - _idx;
-//check here if quotes
+
+	if (_line[_idx] == '\"' || _line[_idx] == '\'')
+	{
+		_idx++;
+		len = _line.find_first_of("\"\'", _idx) - _idx;
+	}
 	if (len == std::string::npos)
 		unexpected_eof_error("\";\" or \"}\"");
 	std::string		ret = _line.substr(_idx, len);
 	_idx += len;
+	if (_line[_idx] == '\"' || _line[_idx] == '\'')
+		_idx++;
 	return(ret);
 }
 
 int
 BuilderCore::line_count()
 {
-	return (std::count(_line.begin(), _line.begin() + _idx, '\n') + 1);
+	std::string::iterator stop = _line.begin() + _idx;
+	if (_idx >= _line.length())
+		stop = _line.end();
+	return (std::count(_line.begin(), stop, '\n') + 1);
 }
 
 int
@@ -68,7 +89,7 @@ BuilderCore::skip_whitespaces()
 	std::locale	loc;
 	int			count = _idx;
 
-	while (_line[_idx])
+	while (_idx < _line.length())
 	{
 		if (_line[_idx] ==  '#')
 			skip_comments();
@@ -82,9 +103,15 @@ BuilderCore::skip_whitespaces()
 void
 BuilderCore::skip_comments()
 {
+	size_t tmp;
+
 	while (_line[_idx] == '#')
 	{
-		_idx = _line.find('\n', _idx) + 1;
+		tmp = _line.find('\n', _idx);
+		if (tmp != std::string::npos)
+			_idx = tmp + 1;
+		else
+			_idx = _line.length();
 		skip_whitespaces();
 	}
 }
@@ -147,12 +174,9 @@ BuilderCore::parse_server_listen(Server *server)
 	int			cursor;
 	bool		active;
 
-	// std::cerr << &_line[_idx] << std::endl;
 	skip_whitespaces();
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("listen");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("listen");
 	while (_line[_idx] && _line[_idx] != ';' && _line[_idx] != '}')
 	{
 		cursor = _idx;
@@ -160,7 +184,7 @@ BuilderCore::parse_server_listen(Server *server)
 		if (port < 0 || (!skip_whitespaces() && _line[_idx] != ';' && _line[_idx] != '.'))
 		{
 			_idx = cursor;
-			host_not_found_error(next_word_skip()); //
+			host_not_found_error(next_word_skip());
 		}
 		if (_line[_idx] == '.')
 		{
@@ -181,14 +205,7 @@ BuilderCore::parse_server_listen(Server *server)
 		server->add_listen(port, ip, active);
 		skip_whitespaces();
 	}
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] == ';')
-		_idx++;
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
-	else
-		not_terminated_by_semicolon_error("listen");
+	check_semicolon("listen");
 }
 
 void
@@ -197,24 +214,15 @@ BuilderCore::parse_server_index(Server *server)
 	std::string	index;
 
 	skip_whitespaces();
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("index");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("index");
 	while (_line[_idx] && _line[_idx] != ';' && _line[_idx] != '}')
 	{
 		index = next_word_skip();
 		// std::cerr << "Index : " << index << std::endl; 
 		server->add_index(index);
 	}
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] == ';')
-		_idx++;
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
-	else
-		not_terminated_by_semicolon_error("index");
+	check_semicolon("index");
 }
 
 void
@@ -224,10 +232,8 @@ BuilderCore::parse_server_allow_methods(Server *server, Core *core)
 	AMethod *	tmp;
 
 	skip_whitespaces();
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("allow_methods");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("allow_methods");
 	while (_line[_idx] && _line[_idx] != ';' && _line[_idx] != '}')
 	{
 		allow_methods = next_word_skip();
@@ -240,99 +246,64 @@ BuilderCore::parse_server_allow_methods(Server *server, Core *core)
 			throw(ParsingError());
 		}
 	}
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] == ';')
-		_idx++;
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
-	else
-		not_terminated_by_semicolon_error("allow_methods");
+	check_semicolon("allow_methods");
 }
 
 void
-BuilderCore::parse_server_name(Server *server)
+BuilderCore::parse_server_name(Server *server) // multiple server names? else add bool management
 {
 	std::string arg = next_word_skip();
 	if (!arg.length())
-	{
-		if (_line[_idx] == ';')
-			invalid_nb_arguments_error("server_name");
-		else
-			unexpected_character_error('}');
-	}
+		no_arg_error("server_name");
 	server->set_name(arg);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("server_name");
-	_idx++;
+	check_semicolon("server_name");
 }
 
 void
 BuilderCore::parse_server_root(Server *server)
 {
+	if (_b_server_root)
+		duplicate_error("root");
+	_b_server_root = true;
 	std::string arg = next_word_skip();
 	if (!arg.length())
-	{
-		if (_line[_idx] == ';')
-			invalid_nb_arguments_error("root");
-		else
-			unexpected_character_error('}');
-	}
+		no_arg_error("root");
 	server->set_root(arg);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("root");
-		_idx++;
+	check_semicolon("root");
 }
 
 void
 BuilderCore::parse_server_path_error_page(Server *server)
 {
+	if (_b_server_path_error_page)
+		duplicate_error("path_error_page");
+	_b_server_path_error_page = true;
 	std::string arg = next_word_skip();
 	if (!arg.length())
-	{
-		if (_line[_idx] == ';')
-			invalid_nb_arguments_error("path_error_page");
-		else
-			unexpected_character_error('}');
-	}
+		no_arg_error("path_error_page");
 	server->set_path_error_page(arg);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("path_error_page");
-	_idx++;
+	check_semicolon("path_error_page");
 }
 
 void
 BuilderCore::parse_server_auto_index(Server *server)
 {
+	if (_b_server_auto_index)
+		duplicate_error("autoindex");
+	_b_server_auto_index = true;
 	std::string arg = next_word_skip();
 	if (!arg.compare("on"))
 		server->set_auto_index(true);
 	else if (!arg.compare("off"))
 		server->set_auto_index(false);
-	else if (_line[_idx] == ';')
-		invalid_nb_arguments_error("autoindex");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	else if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("autoindex");
 	else if (arg != "")
 	{
 		std::cerr << "Parsing Error : invalid value \"" << arg << "\" in \"autoindex\" directive, it must be \"on\" or \"off\" on line " << line_count() << std::endl;
 		throw (ParsingError());
 	}
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("autoindex");
-	_idx++;
+	check_semicolon("autoindex");
 }
 
 void
@@ -342,11 +313,12 @@ BuilderCore::parse_server_client_max_body_size(Server *server)
 	int				ret;
 	size_t			client_max_body_size;
 
+	if (_b_server_client_max_body_size)
+		duplicate_error("client_max_body_size");
+	_b_server_client_max_body_size = true;
 	skip_whitespaces();
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("client_max_body_size");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("client_max_body_size");
 	ret = stoi_skip();
 	if (ret < 0)
 	{
@@ -355,7 +327,7 @@ BuilderCore::parse_server_client_max_body_size(Server *server)
 	}
 	client_max_body_size = ret;
 	if (_line[_idx] == 'k' || _line[_idx] == 'K')
-		client_max_body_size = client_max_body_size << 10; //bitshift?
+		client_max_body_size = client_max_body_size << 10;
 	else if (_line[_idx] == 'm' || _line[_idx] == 'M')
 		client_max_body_size = client_max_body_size << 20;
 	else if (_line[_idx] == 'g' || _line[_idx] == 'G')
@@ -371,12 +343,7 @@ BuilderCore::parse_server_client_max_body_size(Server *server)
 	}
 	_idx++;
 	server->set_client_max_body_size(client_max_body_size);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("client_max_body_size");
-	_idx++;
+	check_semicolon("client_max_body_size");
 }
 
 void
@@ -386,39 +353,22 @@ BuilderCore::parse_server_CGI_param(CGI *cgi)
 	std::string key = next_word_skip();
 	std::string value = next_word_skip();
 	if (!key.length() || !value.length())
-	{
-		if (_line[_idx] == ';')
-			invalid_nb_arguments_error("cgi_param");
-		else
-			unexpected_character_error('}');
-	}
+		no_arg_error("cgi_param");
 	cgi->add_CGI_param(key, value);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("cgi_param");
-	_idx++;
+	check_semicolon("cgi_param");
 }
 
 void
 BuilderCore::parse_server_CGI_exec_name(CGI *cgi)
 {
+	if (_b_server_CGI_exec_name)
+		duplicate_error("exec_name");
+	_b_server_CGI_exec_name = true;
 	std::string arg = next_word_skip();
 	if (!arg.length())
-	{
-		if (_line[_idx] == ';')
-			invalid_nb_arguments_error("exec_name");
-		else
-			unexpected_character_error('}');
-	}
+		no_arg_error("exec_name");
 	cgi->set_exec_name(arg);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("exec_name");
-	_idx++;
+	check_semicolon("exec_name");
 }
 
 void
@@ -428,6 +378,7 @@ BuilderCore::parse_server_extension(Server *server)
 	std::string extension_type = next_word_skip();
 	skip_whitespaces();
 	CGI cgi;
+	_b_server_CGI_exec_name = false;
 	if (_line [_idx++] != '{')
 		no_opening_bracket_error("extension");
 	skip_whitespaces();
@@ -455,10 +406,8 @@ BuilderCore::parse_server_return(Server *server)
 	skip_whitespaces();
 	int		cursor = _idx;
 
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("return");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("return");
 	int key = stoi_skip();
 	if (key < 0 || key >= 1000 || (!skip_whitespaces() && _line[_idx] != ';'))
 	{
@@ -468,12 +417,7 @@ BuilderCore::parse_server_return(Server *server)
 	}
 	std::string value = next_word_skip();
 	server->add_return(key, value);
-	skip_whitespaces();
-	if (!_line[_idx])
-		unexpected_eof_error("\";\" or \"}\"");
-	else if (_line[_idx] != ';')
-		not_terminated_by_semicolon_error("return");
-	_idx++;
+	check_semicolon("return");
 }
 
 void
@@ -482,14 +426,13 @@ BuilderCore::parse_server(Core *core)
 	skip_whitespaces();
 	std::string	directive;
 	Server server;
+	erase_server_bool();
 	if (_line [_idx++] != '{')
 		no_opening_bracket_error("server");
 	skip_whitespaces();
 	while (_line[_idx] && _line[_idx] != '}')
 	{
 		directive = next_word_skip();
-		// std::cerr << "directive : " << directive << " " << directive.length() << std::endl;
-		// std::cerr << _idx - directive.length() << " " << directive.length() << std::endl;
 		if (!directive.compare("listen"))
 			parse_server_listen(&server);
 		else if (!directive.compare("server_name"))
@@ -518,20 +461,19 @@ BuilderCore::parse_server(Core *core)
 	if (_line[_idx] != '}')
 		unexpected_eof_error("\"}\"");
 	_core->add_server(server);
-	// server.print();
 	_idx ++;
 }
 
 void
 BuilderCore::parse_worker()
 {	
+	if (_b_worker)
+		duplicate_error("worker");
+	_b_worker = true;
 	skip_whitespaces();
 	int		cursor = _idx;
-
-	if (_line[_idx] == ';')
-		invalid_nb_arguments_error("worker");
-	else if (_line[_idx] == '}')
-		unexpected_character_error('}');
+	if (_line[_idx] == ';' || _line[_idx] == '}')
+		no_arg_error("worker");
 	int	worker = stoi_skip();
 	if (worker < 0 || (!skip_whitespaces() && _line[_idx] != ';'))
 	{
@@ -557,6 +499,28 @@ BuilderCore::print_debug() const
 	// std::cerr << _idx << std::endl;
 	std::cerr << "Worker : " << _core->get_worker() << std::endl;
 	_core->print();
+}
+
+void
+BuilderCore::check_semicolon(std::string directive)
+{
+	skip_whitespaces();
+	if (!_line[_idx])
+		unexpected_eof_error("\";\" or \"}\"");
+	else if (_line[_idx] == '}')
+		unexpected_character_error('}');
+	else if (_line[_idx] != ';')
+		not_terminated_by_semicolon_error(directive);
+	_idx++;
+}
+
+void
+BuilderCore::no_arg_error(std::string directive)
+{
+	if (_line[_idx] == ';')
+		invalid_nb_arguments_error(directive);
+	else
+		unexpected_character_error('}');
 }
 
 void
@@ -612,5 +576,12 @@ void
 BuilderCore::host_not_found_error(std::string argument)
 {
 	std::cerr << "Parsing Error : host not found in \"" << argument << "\" of the \"listen\" directive"  << " on line " << line_count() << std::endl;
+	throw(ParsingError());
+}
+
+void
+BuilderCore::duplicate_error(std::string directive)
+{
+	std::cerr << "Parsing Error : \"" << directive << "\" directive is duplicate"  << " on line " << line_count() << std::endl;
 	throw(ParsingError());
 }
