@@ -6,7 +6,7 @@
 /*   By: mchardin <mchardin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/06/17 18:13:51 by syndraum          #+#    #+#             */
-/*   Updated: 2021/08/03 21:12:55 by mchardin         ###   ########.fr       */
+/*   Updated: 2021/08/12 16:46:13 by mchardin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,9 +67,10 @@ Core::init(int argc, char * argv[], char *env[])
 	}
 	try
 	{
-		BuilderCore builder_core(reader.get_ifs(), this);
+		BuilderCore builder_core(this);
+		builder_core.build(reader.get_ifs());
 		builder_core.parse_mime_type();
-		builder_core.print_debug(); // 
+		builder_core.print_debug(); //
 	}
 	catch(const std::exception& e)
 	{

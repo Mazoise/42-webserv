@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: roalvare <roalvare@student.42.fr>          +#+  +:+       +#+         #
+#    By: mchardin <mchardin@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/04/07 09:56:55 by mchardin          #+#    #+#              #
-#    Updated: 2021/07/25 17:58:24 by cdai             ###   ########.fr        #
+#    Updated: 2021/08/10 17:02:25 by mchardin         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -47,6 +47,10 @@ SRCS_CGI		= $(addprefix $(PREFIX)cgi/, \
 SRCS_CORE		= $(addprefix $(PREFIX)core/, \
 								Core.cpp \
 								BuilderCore.cpp \
+								BuilderCore_errors.cpp \
+								BuilderCore_cgi.cpp \
+								BuilderCore_utils.cpp \
+								BuilderCore_server.cpp \
 								Server.cpp \
 								ASocket.cpp \
 								ServerSocket.cpp \
